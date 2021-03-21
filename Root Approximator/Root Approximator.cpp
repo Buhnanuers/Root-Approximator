@@ -17,79 +17,47 @@ const int MAX_ITS = 20;
 // Global string to hold the user-defined function
 string equation;
 
-// This evaluates the given function of x
-float func(float num)
+template<typename T>
+struct myFunc : public exprtk::ifunction<T>
 {
-	typedef float T;
+	myFunc() : exprtk::ifunction<T>(2)
+	{
+		exprtk::disable_has_side_effects(*this);
+	}
 
+	inline T operator()(const T& v1, const T& v2)
+	{
+		return T(1) + (v1 * v2) / T(3);
+	}
+};
+
+template<typename T>
+T custom_function(T num)
+{
 	typedef exprtk::symbol_table<T> symbol_table_t;
-	typedef exprtk::expression<T>	  expression_t;
-	typedef exprtk::parser<T>		      parser_t;
+	typedef exprtk::expression<T>	expression_t;
+	typedef exprtk::parser<T>		parser_t;
 
-	string expression_string = equation;
+	std::string expression_string = equation;
 
-	T x = T(num);
+	T x = num;
+
+	myFunc<T> mf;
 
 	symbol_table_t symbol_table;
 	symbol_table.add_variable("x", x);
+	symbol_table.add_function("myFunc", mf);
+	symbol_table.add_constants();
 
 	expression_t expression;
 	expression.register_symbol_table(symbol_table);
 
 	parser_t parser;
-	
-	if (!parser.compile(expression_string, expression))
-	{
-		cout << "Compilation error..." << endl;
-		return 0;
-	}
+	parser.compile(expression_string, expression);
 
 	T result = expression.value();
-
-	cout << result << endl;
-
-	system("pause");
-
-	/*
-	stringstream s(equation);
-	string temp, convertTemp, tempToAppend;
-	vector<string> funcVec;
-	float total = 0;
-
-	convertTemp = to_string(num);
-
-	while(s >> temp)
-	{
-		// Replace all instances of x with num
-		for (int i = 0; i < temp.size(); i++)
-		{
-			if (temp[i] == 'x')
-			{
-				// Copy all contents of string after instance of x, to later append back onto string after replacement
-				for (int k = i + 1; k < temp.size(); k++)
-				{
-					tempToAppend.push_back(temp[k]);
-				}
-
-				temp.replace(i, convertTemp.size(), convertTemp);
-
-				temp.append(tempToAppend);
-			}
-		}
-		cout << temp << " ";
-		funcVec.push_back(temp);
-	}
-
-
 	
-
-
-	cout << endl;
-
-	// Change the equation here as desired
-	return num - 4*log(num);
-	*/
-
+	return result;
 }
 
 // This evaluates the given function's derivative of x
@@ -122,7 +90,7 @@ float convertError(string err)
 
 float newtonMethod(float x)
 {
-	return x - (func(x) / funcDeriv(x));
+	return x - (custom_function(x) / funcDeriv(x));
 }
 
 float secantMethod(float x, float prevX, float fOfX, float fOfPrevX)
@@ -138,13 +106,13 @@ void newtonApproximation(float midpt, float err)
 	cout << "\ni\tx\t\tf(x)\t\tf'(x)" << endl;
 	cout << "---\t---\t\t---\t\t---" << endl << endl;
 
-	cout << 0 << "\t" << midpt << "\t" << func(midpt) << "\t" << funcDeriv(midpt) << endl;
+	cout << 0 << "\t" << midpt << "\t" << custom_function(midpt) << "\t" << funcDeriv(midpt) << endl;
 
 	for (int i = 0; i < MAX_ITS; i++)
 	{
 		// Calculate next x value
 		newX = newtonMethod(midpt);
-		cout << count << "\t" << newX << "\t" << func(newX) << "\t" << funcDeriv(newX) << endl;
+		cout << count << "\t" << newX << "\t" << custom_function(newX) << "\t" << funcDeriv(newX) << endl;
 
 		// Check for completion (newX - midpt < err)
 		if (abs(newX - midpt) < err)
@@ -170,14 +138,14 @@ void secantApproximation(float x1, float x2, float err)
 
 	cout << "\ni\tx\t\tf(x)" << endl << endl;
 
-	cout << 0 << "\t" << x1 << "\t" << func(x1) << endl;
-	cout << 1 << "\t" << x2 << "\t" << func(x2) << endl;
+	cout << 0 << "\t" << x1 << "\t" << custom_function(x1) << endl;
+	cout << 1 << "\t" << x2 << "\t" << custom_function(x2) << endl;
 
 	for (int i = 0; i < MAX_ITS; i++)
 	{
 		// Calculate the next x value
-		newX = secantMethod(x2, x1, func(x2), func(x1));
-		cout << count << "\t" << newX << "\t" << func(newX) << endl;
+		newX = secantMethod(x2, x1, custom_function(x2), custom_function(x1));
+		cout << count << "\t" << newX << "\t" << custom_function(newX) << endl;
 
 		//Base case, check if within error tolerance
 		if (abs(newX - x2) < err)
